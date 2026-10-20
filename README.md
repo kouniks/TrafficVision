@@ -1,4 +1,4 @@
-# 🚦 Gate-Calibrated Traffic Vision & Acoustic Analyzer
+# 🚦 TrafficVision v1 — Mixed-Traffic (2W/3W Enhanced) & Acoustic Analyzer
 
 ![HTML5](https://img.shields.io/badge/HTML5-E34F26?style=flat-square&logo=html5&logoColor=white)
 ![TensorFlow.js](https://img.shields.io/badge/TensorFlow.js-FF6F00?style=flat-square&logo=tensorflow&logoColor=white)
@@ -6,64 +6,62 @@
 ![GitHub Pages](https://img.shields.io/badge/GitHub_Pages-222222?style=flat-square&logo=github&logoColor=white)
 ![License: MIT](https://img.shields.io/badge/License-MIT-22C55E?style=flat-square)
 
-A lightweight, zero-backend web application that extracts **classified vehicle counts**, **perspective-independent fleet average speed**, and **acoustic honking frequency** directly from uploaded traffic videos. 
+A client-side, zero-backend web application designed for **heterogeneous Indian traffic streams**. Upload roadside, foot-overbridge (FOB), or drone video footage to extract **gate-verified vehicle counts across 5 classes (`2W`, `3W/Auto-Rickshaw`, `Car`, `Bus`, `Truck`)**, **space-mean fleet speed**, and **acoustic honking frequency** directly in the browser.
 
-Built as a single-file HTML5 application powered by **TensorFlow.js (`COCO-SSD`)** and the **Web Audio API**, it runs entirely inside the client's browser and deploys out-of-the-box on **GitHub Pages**.
+🔗 **Live Demo:** [https://kouniks.github.io/TrafficVision/](https://kouniks.github.io/TrafficVision/)
+
+![TrafficVision Preview](sample_capture.jpg)
 
 ---
 
 ## ✨ Key Features
 
-* **Arbitrary Camera Angle Support:** Works with roadside tripods, foot-overbridge (FOB) CCTV angles, elevated building views, and overhead drone footage.
-* **Interactive Virtual Tripwires (Gates A & B):** Drag-and-drop or click-to-place 4 calibration points directly on the video canvas to define counting and speed-trap lines across any road orientation.
-* **Three-Layer Anti-Overcounting Pipeline:**
-  * **Cross-Class Non-Maximum Suppression (NMS):** Merges overlapping bounding boxes ($\text{IoU} > 0.45$) so a single vehicle is never simultaneously double-detected as both a `car` and a `truck`.
-  * **2D Vector Line Intersection:** Vehicles are counted strictly when their bottom-center road contact anchor crosses **Gate A** (`A1–A2`).
-  * **Spatial-Temporal Gate Lock:** Applies a localized cooldown window along the tripwire to prevent flickering or fragmented bounding boxes from triggering duplicate counts.
-* **Two-Gate Time-Mean Speed Trap:** Measures exact travel time between **Gate A** and **Gate B** over a user-defined real-world distance (in meters) to compute class-wise and fleet-wide average speeds ($\text{km/h}$).
-* **Automated Acoustic Honk Counter:** Decodes the video's audio stream via an offline biquad bandpass filter centered on vehicle horn frequencies ($1.8\text{--}3.5\text{ kHz}$), counting discrete honk peaks above the rolling ambient road noise floor.
-* **100% Client-Side Privacy:** Video files never leave the user's device; all computer vision and acoustic signal processing execute locally in the browser.
+* **5-Class Heterogeneous Fleet Detection:** Explicitly resolves **Two-Wheelers (`2W`)**, **Three-Wheeled Auto-Rickshaws (`3W`)**, **Cars/SUVs (`Car`)**, **Buses (`Bus`)**, and **Commercial Trucks/LCVs (`Truck`)**.
+* **SAHI-Style High-Res Gate-Zone Zoom Slicing:** Overcomes standard $300 \times 300$ MobileNet resolution crushing by cropping a native-resolution Region of Interest (ROI) around the active speed-trap gates on every frame, boosting small motorcycle and scooter recall by up to $3\times$.
+* **Rider-to-2W Fusion Engine:** Automatically fuses high-confidence `'person'` detections (helmeted riders) overlapping low-confidence motorcycles—or moving rapidly inside the active roadway gate zone—into unified `2W` tracks.
+* **3W / Auto-Rickshaw Livery & Morphology Classifier:** Separates three-wheelers from standard sedans using depth-normalized footprint width, boxy aspect ratios ($h/w$), canopy luminance contrast, and HSV color segmentation (Indian yellow/black and green/yellow CNG auto-rickshaw liveries).
+* **Interactive Virtual Tripwires (Gate A & Gate B):** Drag-and-drop 4 points (`A1, A2, B1, B2`) across any road angle. Vehicles are counted strictly once upon intersecting **Gate A**, while space-mean trap speed is computed between **Gate A** and **Gate B**.
+* **Acoustic Horn Frequency Counter:** Uses the Web Audio API (`OfflineAudioContext`) with a biquad bandpass filter centered at $2.6\text{ kHz}$ ($1.8\text{--}3.5\text{ kHz}$ passband) to isolate and count discrete vehicle honking events above the rolling ambient noise floor.
 
 ---
 
-## 🧠 Methodology & Architecture
+## 🧠 Methodology & Technical Pipeline
 
-### 1. Vehicle Detection & Tire-Anchor Tracking
-For each video frame, objects are detected and filtered into four primary transport classes:
-* **Two-Wheeler (`2W`):** Motorcycles and bicycles
-* **Car (`car`):** Sedans, hatchbacks, SUVs, and vans
-* **Bus (`bus`):** Public transit and institutional buses
-* **Truck (`truck`):** Light, medium, and heavy commercial vehicles (LCVs/HCVs)
+### 1. Dual-Pass Slicing & Rider-to-2W Recovery
+Standard browser object detectors downscale full $1080\text{p}$ frames into small square tensors, causing distant motorcycles to vanish and elevated camera views to detect only the rider's torso. TrafficVision runs a two-stage pass per frame:
+1. **Full-Frame Pass (`mobilenet_v2`):** Captures large vehicles (`bus`, `truck`, `car`) and macroscopic trajectories.
+2. **Gate-Zone Native Crop (SAHI Pass):** Extracts the bounding polygon spanning **Gate A** and **Gate B** with padding and runs a second high-resolution inference pass.
+3. **Rider-Bike Spatial Fusion:** Any `'person'` detection $P$ whose horizontal overlap with a candidate motorcycle $B$ exceeds $35\%$ (or that moves inside the gate zone outside any 4W vehicle cabin with aspect ratio $1.1 \le h/w \le 2.65$) is fused into a `2W` bounding box.
 
-Rather than tracking the center of the 2D bounding box (which suffers from parallax shift on tall vehicles like buses and trucks), the tracker monitors the **bottom-center tire contact anchor**:
+### 2. 3W / Auto-Rickshaw Discrimination
+Because MS-COCO lacks a native `auto-rickshaw` label, candidate compact four-wheeler boxes are evaluated across three features:
+* **Perspective-Normalized Width:** Compares candidate width $w_i / (y_i / H)$ against the rolling 65th-percentile width of verified passenger cars in the scene ($w_{\text{3W}} < 0.78\,w_{\text{car}}$).
+* **Livery HSV Segmentation:** Samples a $24 \times 24$ patch across the bounding box to quantify characteristic auto-rickshaw yellow ($R > 135, G > 110, B < 95$) and CNG green ($G > 1.15R, G > 1.12B$) pixel ratios alongside top-canopy luminance contrast.
+* **Temporal Majority Voting:** Each tracked ID accumulates class votes across consecutive frames so single-frame lighting changes never flip a vehicle's classification.
 
-$$P_t = \left( x + \frac{w}{2},\; y + 0.92h \right)$$
+### 3. Virtual Gate Intersection & Space-Mean Speed Trap
+Rather than tracking the 2D box centroid (which shifts due to camera parallax on tall buses and trucks), the tracker locks onto the **bottom-center road tire contact anchor**:
 
-### 2. Virtual Tripwire Intersection (Counting)
-A tracked vehicle transitions from uncounted (blue bounding box) to verified/counted (green bounding box with `✓`) only when its displacement vector $\vec{P_{t-1}P_t}$ intersects the segment $\vec{A_1A_2}$ using counter-clockwise ($\text{CCW}$) orientation predicates:
+$$P_t = \left( x + \frac{w}{2},\; y + 0.90h \right)$$
+
+A vehicle is counted strictly when its motion vector $\vec{P_{t-1}P_t}$ intersects **Gate A** ($\vec{A_1A_2}$) via counter-clockwise ($\text{CCW}$) orientation predicates:
 
 $$\text{CCW}(P_{t-1}, A_1, A_2) \neq \text{CCW}(P_t, A_1, A_2) \quad \text{and} \quad \text{CCW}(P_{t-1}, P_t, A_1) \neq \text{CCW}(P_{t-1}, P_t, A_2)$$
 
-### 3. Speed Estimation ($\text{Gate A} \leftrightarrow \text{Gate B}$)
-Given a user-specified real-world distance $D$ (in meters) between **Gate A** and **Gate B**, and the exact video timestamps $t_A$ and $t_B$ when a vehicle's anchor intersects each gate, the space-mean trap speed is calculated as:
+When the vehicle subsequently crosses **Gate B** ($\vec{B_1B_2}$) across a known real-world trap distance $D$ (in meters), its exact space-mean speed is recorded:
 
 $$v_{\text{km/h}} = \frac{D}{\vert{}t_B - t_A\vert{}} \times 3.6$$
 
-If a vehicle exits the frame or changes lanes before crossing Gate B, the system falls back to the calibrated pixel-to-meter scale inside the shaded trap zone.
-
-### 4. Acoustic Horn Event Detection
-1. The audio track is extracted into an `OfflineAudioContext`.
-2. A **Biquad Bandpass Filter** ($f_0 = 2600\text{ Hz}$, $Q = 1.8$) isolates dominant fundamental and harmonic vehicle horn frequencies while attenuating low-frequency engine/tire rumble ($< 500\text{ Hz}$).
-3. Short-time Root Mean Square ($\text{RMS}$) energy is computed across $50\text{ ms}$ windows.
-4. Discrete honk events are logged whenever window energy exceeds $\tau \times E_{\text{median}}$ (where $E_{\text{median}}$ is the clip's median ambient noise floor and $\tau$ is the user sensitivity multiplier), subject to a $300\text{ ms}$ debounce window.
+### 4. Acoustic Honk Detection ($1.8\text{--}3.5\text{ kHz}$)
+1. Extracts the full audio buffer upon video upload and passes it through a Biquad Bandpass Filter ($f_0 = 2600\text{ Hz}, Q = 1.8$).
+2. Computes short-time Root Mean Square ($\text{RMS}$) energy over $50\text{ ms}$ windows.
+3. Registers a honk event whenever energy exceeds $2.3 \times E_{\text{median}}$ (the clip's ambient road noise floor), using a $300\text{ ms}$ debounce window to avoid double-counting sustained horn blasts.
 
 ---
 
-## 🚀 Quick Start & Deployment
+## 🚀 Deployment on GitHub Pages
 
-### Option 1: Run Locally
-No build tools, Node.js, or Python environment required.
-1. Clone this repository:
+1. Clone or fork this repository:
    ```bash
-   git clone [https://github.com/](https://github.com/)kouniks/Vehicle-Detector.git
-   cd Vehicle-Detector
+   git clone [https://github.com/kouniks/TrafficVision.git](https://github.com/kouniks/TrafficVision.git)
+   cd TrafficVision
