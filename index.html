@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Traffic Vision & Acoustic Analyzer</title>
+  <!-- TensorFlow.js and COCO-SSD for zero-backend browser detection -->
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.17.0/dist/tf.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd@2.2.3"></script>
+  <style>
+    :root {
+      --bg: #0f172a;
+      --card: #1e293b;
+      --text: #f8fafc;
+      --muted: #94a3b8;
+      --accent: #38bdf8;
+      --warn: #f59e0b;
+      --success: #22c55e;
+    }
+    * { box-sizing: border-box; font-family: system-ui, -apple-system, sans-serif; }
+    body { margin: 0; padding: 24px; background: var(--bg); color: var(--text); }
+    .container { max-width: 1200px; margin: 0 auto; }
+    h1 { margin: 0 0 8px 0; font-size: 1.6rem; }
+    p.sub { margin: 0 0 20px 0; color: var(--muted); font-size: 0.95rem; }
+
+    .controls {
+      display: flex; flex-wrap: wrap; gap: 16px; align-items: center;
+      background: var(--card); padding: 16px; border-radius: 10px; margin-bottom: 20px;
+    }
+    .control-group { display: flex; flex-direction: column; gap: 4px; font-size: 0.85rem; color: var(--muted); }
+    .control-group input {
+      background: #0f172a; color: var(--text); border: 1px solid #334155;
+      padding: 8px 10px; border-radius: 6px; width: 150px;
+    }
+    button {
+      background: var(--accent); color: #0f172a; border: none; padding: 10px 18px;
+      border-radius: 6px; font-weight: 600; cursor: pointer;
+    }
+    button:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    .grid { display: grid; grid-template-columns: 2fr 1fr; gap: 20px; }
+    @media (max-width: 900px) { .grid { grid-template-columns: 1fr; } }
+
+    .video-box {
+      position: relative; background: #000; border-radius: 10px; overflow: hidden;
+      min-height: 360px; display: flex; align-items: center; justify-content: center;
+    }
+    video { display: none; }
+    canvas { width: 100%; height: auto; display: block; }
+
+    .stats-panel { display: flex; flex-direction: column; gap: 14px; }
+    .metric-card {
+      background: var(--card); padding: 16px; border-radius: 10px;
+      border-left: 4px solid var(--accent);
+    }
+    .metric-card.honk { border-left-color: var(--warn); }
+    .metric-card.speed { border-left-color: var(--success); }
+    .metric-title { font-size: 0.85rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; }
+    .metric-value { font-size: 2rem; font-weight: 700; margin-top: 4px; }
+    .metric-sub { font-size: 0.8rem; color: var(--muted); margin-top: 4px; }
+
+    table { width: 100%; border-collapse: collapse; margin-top: 8px; font-size: 0.9rem; }
+    th, td { text-align: left; padding: 8px 4px; border-bottom: 1px solid #334155; }
+    .status-badge {
+      display: inline-block; padding: 4px 10px; border-radius: 999px;
+      font-size: 0.8rem; background: #334155; color: var(--text);
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Multi-Angle Traffic Vision & Honk Analyzer</h1>
+    <p class="sub">Upload roadside, foot-overbridge, or drone traffic footage to extract vehicle counts, fleet speed, and acoustic honk events.</p>
+
+    <div class="controls">
+      <div class="control-group">
+        <label>1. Upload Traffic Video</label>
+        <input type="file" id="videoUpload" accept="video/*" style="width: 240px;" />
+      </div>
+      <div class="control-group">
+        <label>Frame Width at Mid-Road (m)</label>
+        <input type="number" id="roadWidthMeters" value="18" step="1" min="2" />
+      </div>
+      <div class="control-group">
+        <label>Camera Angle Perspective Factor</label>
+        <input type="number" id="perspectiveFactor" value="1.5" step="0.1" min="1.0" max="4.0" title="1.0 = Top-down drone; 1.5-2.5 = Oblique CCTV" />
+      </div>
+      <div class="control-group">
+        <label>Honk Sensitivity (x Noise Floor)</label>
+        <input type="number" id="honkThreshold" value="2.4" step="0.1" min="1.2" max="5.0" />
+      </div>
+      <button id="startBtn" disabled>Loading AI Model...</button>
+      <span class="status-badge" id="statusText">Initializing TensorFlow.js...</span>
+    </div>
+
+    <div class="grid">
+      <div class="video-box">
+        <video id="videoElement" playsinline muted></video>
+        <canvas id="outputCanvas"></canvas>
+      </div>
+
+      <div class="stats-panel">
+        <div class="metric-card speed">
+          <div class="metric-title">Fleet Average Speed</div>
+          <div class="metric-value"><span id="avgSpeedVal">0.0</span> km/h</div>
+          <div class="metric-sub">Perspective-corrected across tracked vehicles</div>
+        </div>
+
+        <div class="metric-card honk">
+          <div class="metric-title">Detected Honk Count</div>
+          <div class="metric-value" id="honkCountVal">0</div>
+          <div class="metric-sub" id="honkRateSub">Upload video to scan 1.8–3.5 kHz horn band</div>
+        </div>
+
+        <div class="metric-card">
+          <div class="metric-title">Unique Vehicles by Class</div>
+          <table>
+            <thead>
+              <tr><th>Vehicle Type</th><th>Count</th><th>Class Avg Speed</th></tr>
+            </thead>
+            <tbody>
+              <tr><td>Two-Wheeler (Motorcycle/Bicycle)</td><td id="count-2w">0</td><td id="speed-2w">--</td></tr>
+              <tr><td>Car / Sedan / SUV</td><td id="count-car">0</td><td id="speed-car">--</td></tr>
+              <tr><td>Bus</td><td id="count-bus">0</td><td id="speed-bus">--</td></tr>
+              <tr><td>Truck / LCV / HCV</td><td id="count-truck">0</td><td id="speed-truck">--</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let detector = null;
+    let isProcessing = false;
+    let nextTrackId = 1;
+    let activeTracks = [];
+    let completedSpeedsByClass = { '2w': [], 'car': [], 'bus': [], 'truck': [] };
+    let uniqueCounts = { '2w': 0, 'car': 0, 'bus': 0, 'truck': 0 };
+    let lastFrameTime = null;
+
+    const video = document.getElementById('videoElement');
+    const canvas = document.getElementById('outputCanvas');
+    const ctx = canvas.getContext('2d');
+    const startBtn = document.getElementById('startBtn');
+    const statusText = document.getElementById('statusText');
+
+    // 1. Load COCO-SSD model on startup
+    cocoSsd.load({ base: 'lite_mobilenet_v2' }).then(model => {
+      detector = model;
+      statusText.textContent = 'Model Ready — Upload a Video';
+      if (video.src) startBtn.disabled = false;
+      startBtn.textContent = 'Start Analysis';
+    });
+
+    // 2. Handle Video Upload + Trigger Acoustic Honk Analysis
+    document.getElementById('videoUpload').addEventListener('change', async (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      const url = URL.createObjectURL(file);
+      video.src = url;
+      video.onloadedmetadata = () => {
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        if (detector) startBtn.disabled = false;
+        statusText.textContent = `Loaded (${video.videoWidth}x${video.videoHeight})`;
+      };
+
+      // Analyze audio track for honking events
+      analyzeHonksInAudio(file);
+    });
+
+    // 3. Acoustic Honk Detector (1.8 kHz - 3.5 kHz Horn Band)
+    async function analyzeHonksInAudio(file) {
+      const honkCountEl = document.getElementById('honkCountVal');
+      const honkSubEl = document.getElementById('honkRateSub');
+      honkSubEl.textContent = 'Decoding audio stream for horn signatures...';
+
+      try {
+        const arrayBuffer = await file.arrayBuffer();
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        const audioBuffer = await audioCtx.decodeAudioData(arrayBuffer);
+
+        // Render through OfflineAudioContext with Bandpass Filter (centered at 2600 Hz for vehicle horns)
+        const offlineCtx = new OfflineAudioContext(1, audioBuffer.length, audioBuffer.sampleRate);
+        const source = offlineCtx.createBufferSource();
+        source.buffer = audioBuffer;
+
+        const bandpass = offlineCtx.createBiquadFilter();
+        bandpass.type = 'bandpass';
+        bandpass.frequency.value = 2600; // Dominant fundamental/harmonic horn band
+        bandpass.Q.value = 1.8;
+
+        source.connect(bandpass);
+        bandpass.connect(offlineCtx.destination);
+        source.start(0);
+
+        const filteredBuffer = await offlineCtx.startRendering();
+        const channelData = filteredBuffer.getChannelData(0);
+        const sampleRate = filteredBuffer.sampleRate;
+
+        // Compute short-time RMS energy in 50ms windows
+        const windowSize = Math.floor(sampleRate * 0.05);
+        const energies = [];
+        for (let i = 0; i < channelData.length; i += windowSize) {
+          let sum = 0;
+          const end = Math.min(i + windowSize, channelData.length);
+          for (let j = i; j < end; j++) sum += channelData[j] * channelData[j];
+          energies.push(Math.sqrt(sum / (end - i)));
+        }
+
+        // Median ambient energy floor
+        const sorted = [...energies].sort((a, b) => a - b);
+        const medianNoise = sorted[Math.floor(sorted.length * 0.5)] || 0.0001;
+        const sensitivity = parseFloat(document.getElementById('honkThreshold').value) || 2.4;
+        const threshold = medianNoise * sensitivity;
+
+        // Count discrete honk events with 300ms minimum debounce
+        let honkCount = 0;
+        let inHonk = false;
+        let cooldownWindows = 0;
+
+        for (let i = 0; i < energies.length; i++) {
+          if (cooldownWindows > 0) cooldownWindows--;
+          if (energies[i] > threshold && !inHonk && cooldownWindows === 0) {
+            honkCount++;
+            inHonk = true;
+            cooldownWindows = 6; // 6 * 50ms = 300ms debounce
+          } else if (energies[i] <= threshold * 0.85) {
+            inHonk = false;
+          }
+        }
+
+        const durationMin = audioBuffer.duration / 60;
+        const ratePerMin = durationMin > 0 ? (honkCount / durationMin).toFixed(1) : 0;
+        honkCountEl.textContent = honkCount;
+        honkSubEl.textContent = `${ratePerMin} honks/min across ${audioBuffer.duration.toFixed(1)}s clip`;
+      } catch (err) {
+        honkSubEl.textContent = 'No audio track found or unsupported codec.';
+      }
+    }
+
+    // 4. Start Vision Pipeline
+    startBtn.addEventListener('click', () => {
+      if (isProcessing) {
+        video.pause();
+        isProcessing = false;
+        startBtn.textContent = 'Resume Analysis';
+        return;
+      }
+      // Reset state if starting from 0
+      if (video.currentTime === 0 || video.ended) {
+        activeTracks = [];
+        uniqueCounts = { '2w': 0, 'car': 0, 'bus': 0, 'truck': 0 };
+        completedSpeedsByClass = { '2w': [], 'car': [], 'bus': [], 'truck': [] };
+        lastFrameTime = null;
+      }
+      isProcessing = true;
+      startBtn.textContent = 'Pause Analysis';
+      statusText.textContent = 'Processing Video...';
+      video.play();
+      requestAnimationFrame(processFrame);
+    });
+
+    function mapClass(cocoClass) {
+      if (cocoClass === 'motorcycle' || cocoClass === 'bicycle') return '2w';
+      if (cocoClass === 'car') return 'car';
+      if (cocoClass === 'bus') return 'bus';
+      if (cocoClass === 'truck') return 'truck';
+      return null;
+    }
+
+    // 5. Frame-by-Frame Detection, Tracking & Perspective Speed Calculation
+    async function processFrame() {
+      if (!isProcessing || video.paused || video.ended) {
+        if (video.ended) {
+          isProcessing = false;
+          startBtn.textContent = 'Restart Analysis';
+          statusText.textContent = 'Analysis Complete';
+        }
+        return;
+      }
+
+      const currentTime = video.currentTime;
+      const dt = lastFrameTime !== null ? (currentTime - lastFrameTime) : 0;
+      lastFrameTime = currentTime;
+
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+      if (dt > 0 && dt < 1.0) {
+        const predictions = await detector.detect(video, 35, 0.35);
+        const roadWidthM = parseFloat(document.getElementById('roadWidthMeters').value) || 18;
+        const perspFactor = parseFloat(document.getElementById('perspectiveFactor').value) || 1.5;
+        const basePixelsPerMeter = canvas.width / roadWidthM;
+
+        const currentDetections = [];
+        for (const p of predictions) {
+          const vType = mapClass(p.class);
+          if (!vType) continue;
+          const [x, y, w, h] = p.bbox;
+          currentDetections.push({
+            vType, x, y, w, h,
+            cx: x + w / 2,
+            cy: y + h / 2,
+            matched: false
+          });
+        }
+
+        // Match existing tracks via Euclidean centroid proximity
+        const maxDistPx = canvas.width * 0.08;
+        for (const track of activeTracks) {
+          track.framesSinceSeen++;
+          let bestDet = null;
+          let bestDist = maxDistPx;
+
+          for (const det of currentDetections) {
+            if (det.matched) continue;
+            const dist = Math.hypot(det.cx - track.cx, det.cy - track.cy);
+            if (dist < bestDist) {
+              bestDist = dist;
+              bestDet = det;
+            }
+          }
+
+          if (bestDet) {
+            bestDet.matched = true;
+            const dxPx = bestDet.cx - track.cx;
+            const dyPx = bestDet.cy - track.cy;
+            const pixelDisp = Math.hypot(dxPx, dyPx);
+
+            // Perspective scaling: objects higher in frame (smaller y) cover more meters per pixel
+            const normalizedY = Math.max(0.15, bestDet.cy / canvas.height);
+            const depthScale = Math.pow(1 / normalizedY, perspFactor - 1);
+            const distMeters = (pixelDisp / basePixelsPerMeter) * depthScale;
+
+            const instantSpeedKmh = (distMeters / dt) * 3.6;
+            if (instantSpeedKmh > 1 && instantSpeedKmh < 140) {
+              track.speedHistory.push(instantSpeedKmh);
+              if (track.speedHistory.length > 10) track.speedHistory.shift();
+              track.avgSpeed = track.speedHistory.reduce((a, b) => a + b, 0) / track.speedHistory.length;
+            }
+
+            track.cx = bestDet.cx;
+            track.cy = bestDet.cy;
+            track.x = bestDet.x;
+            track.y = bestDet.y;
+            track.w = bestDet.w;
+            track.h = bestDet.h;
+            track.framesSinceSeen = 0;
+            track.hits++;
+
+            if (track.hits === 3 && !track.counted) {
+              track.counted = true;
+              uniqueCounts[track.vType]++;
+            }
+          }
+        }
+
+        // Register new tracks
+        for (const det of currentDetections) {
+          if (!det.matched) {
+            activeTracks.push({
+              id: nextTrackId++,
+              vType: det.vType,
+              cx: det.cx, cy: det.cy,
+              x: det.x, y: det.y, w: det.w, h: det.h,
+              framesSinceSeen: 0,
+              hits: 1,
+              counted: false,
+              speedHistory: [],
+              avgSpeed: 0
+            });
+          }
+        }
+
+        // Prune stale tracks
+        activeTracks = activeTracks.filter(t => t.framesSinceSeen <= 12);
+
+        // Draw bounding boxes and speed labels
+        for (const t of activeTracks) {
+          if (t.framesSinceSeen > 2) continue;
+          ctx.strokeStyle = '#38bdf8';
+          ctx.lineWidth = 2;
+          ctx.strokeRect(t.x, t.y, t.w, t.h);
+
+          const label = `#${t.id} ${t.vType.toUpperCase()} ${t.avgSpeed > 0 ? t.avgSpeed.toFixed(1) + ' km/h' : ''}`;
+          ctx.fillStyle = 'rgba(15, 23, 42, 0.85)';
+          const textWidth = ctx.measureText(label).width;
+          ctx.fillRect(t.x, Math.max(0, t.y - 22), textWidth + 10, 22);
+          ctx.fillStyle = '#38bdf8';
+          ctx.font = 'bold 13px sans-serif';
+          ctx.fillText(label, t.x + 5, Math.max(15, t.y - 6));
+
+          if (t.counted && t.avgSpeed > 0) {
+            completedSpeedsByClass[t.vType].push(t.avgSpeed);
+          }
+        }
+
+        updateDashboardUI();
+      }
+
+      requestAnimationFrame(processFrame);
+    }
+
+    function updateDashboardUI() {
+      let allSpeeds = [];
+      for (const key of ['2w', 'car', 'bus', 'truck']) {
+        document.getElementById(`count-${key}`).textContent = uniqueCounts[key];
+        const arr = completedSpeedsByClass[key];
+        if (arr.length > 0) {
+          const avg = arr.reduce((a, b) => a + b, 0) / arr.length;
+          document.getElementById(`speed-${key}`).textContent = `${avg.toFixed(1)} km/h`;
+          allSpeeds = allSpeeds.concat(arr.slice(-30));
+        }
+      }
+      if (allSpeeds.length > 0) {
+        const fleetAvg = allSpeeds.reduce((a, b) => a + b, 0) / allSpeeds.length;
+        document.getElementById('avgSpeedVal').textContent = fleetAvg.toFixed(1);
+      }
+    }
+  </script>
+</body>
+</html>
