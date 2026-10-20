@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Gate-Calibrated Traffic Vision & Honk Analyzer</title>
+  <title>Indian Traffic Vision (2W/3W Enhanced) & Honk Analyzer</title>
   <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.17.0/dist/tf.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd@2.2.3"></script>
   <style>
@@ -19,29 +19,34 @@
     }
     * { box-sizing: border-box; font-family: system-ui, -apple-system, sans-serif; }
     body { margin: 0; padding: 20px; background: var(--bg); color: var(--text); }
-    .container { max-width: 1260px; margin: 0 auto; }
+    .container { max-width: 1280px; margin: 0 auto; }
     h1 { margin: 0 0 6px 0; font-size: 1.5rem; }
     p.sub { margin: 0 0 16px 0; color: var(--muted); font-size: 0.9rem; }
 
     .controls {
-      display: flex; flex-wrap: wrap; gap: 14px; align-items: flex-end;
+      display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end;
       background: var(--card); padding: 14px 16px; border-radius: 10px; margin-bottom: 18px;
     }
-    .control-group { display: flex; flex-direction: column; gap: 4px; font-size: 0.8rem; color: var(--muted); }
-    .control-group input {
+    .control-group { display: flex; flex-direction: column; gap: 4px; font-size: 0.78rem; color: var(--muted); }
+    .control-group input, .control-group select {
       background: #0f172a; color: var(--text); border: 1px solid #334155;
-      padding: 7px 10px; border-radius: 6px; width: 135px;
+      padding: 7px 10px; border-radius: 6px; width: 130px;
+    }
+    .checkbox-group {
+      display: flex; align-items: center; gap: 6px; font-size: 0.82rem;
+      color: var(--text); background: #0f172a; padding: 7px 10px;
+      border-radius: 6px; border: 1px solid #334155; cursor: pointer;
     }
     button {
-      background: var(--accent); color: #0f172a; border: none; padding: 9px 15px;
-      border-radius: 6px; font-weight: 600; cursor: pointer; font-size: 0.85rem;
+      background: var(--accent); color: #0f172a; border: none; padding: 9px 14px;
+      border-radius: 6px; font-weight: 600; cursor: pointer; font-size: 0.84rem;
     }
     button.secondary { background: #334155; color: var(--text); }
     button.danger { background: var(--danger); color: #fff; }
     button:disabled { opacity: 0.45; cursor: not-allowed; }
 
     .grid { display: grid; grid-template-columns: 2.1fr 1fr; gap: 18px; }
-    @media (max-width: 950px) { .grid { grid-template-columns: 1fr; } }
+    @media (max-width: 960px) { .grid { grid-template-columns: 1fr; } }
 
     .video-box {
       position: relative; background: #020617; border-radius: 10px; overflow: hidden;
@@ -52,7 +57,7 @@
     canvas { width: 100%; height: auto; display: block; cursor: crosshair; }
 
     .hint-bar {
-      margin-top: 8px; font-size: 0.82rem; color: var(--muted);
+      margin-top: 8px; font-size: 0.8rem; color: var(--muted);
       display: flex; justify-content: space-between; flex-wrap: wrap; gap: 8px;
     }
     .legend-dot {
@@ -66,12 +71,15 @@
     }
     .metric-card.honk { border-left-color: var(--warn); }
     .metric-card.speed { border-left-color: var(--success); }
-    .metric-title { font-size: 0.8rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; }
-    .metric-value { font-size: 1.85rem; font-weight: 700; margin-top: 4px; }
-    .metric-sub { font-size: 0.78rem; color: var(--muted); margin-top: 4px; }
+    .metric-title { font-size: 0.78rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; }
+    .metric-value { font-size: 1.8rem; font-weight: 700; margin-top: 4px; }
+    .metric-sub { font-size: 0.76rem; color: var(--muted); margin-top: 4px; }
 
-    table { width: 100%; border-collapse: collapse; margin-top: 8px; font-size: 0.86rem; }
+    table { width: 100%; border-collapse: collapse; margin-top: 8px; font-size: 0.85rem; }
     th, td { text-align: left; padding: 7px 4px; border-bottom: 1px solid #334155; }
+    .badge-class {
+      display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px;
+    }
     .status-badge {
       display: inline-block; padding: 5px 10px; border-radius: 999px;
       font-size: 0.78rem; background: #334155; color: var(--text);
@@ -80,30 +88,46 @@
 </head>
 <body>
   <div class="container">
-    <h1>Gate-Calibrated Traffic Vision & Acoustic Analyzer</h1>
-    <p class="sub">Drag the <strong>Cyan Gate (A1–A2)</strong> and <strong>Amber Gate (B1–B2)</strong> across the road. Vehicles are counted strictly once upon crossing Gate A, and speed is measured between Gate A and Gate B.</p>
+    <h1>Mixed-Traffic Vision (2W & 3W/Auto Enhanced) & Honk Analyzer</h1>
+    <p class="sub">Includes <strong>High-Res Gate-Zone Zoom Slicing</strong>, <strong>Rider-to-2W Fusion</strong>, and <strong>3W/Auto-Rickshaw Livery & Footprint Classification</strong>.</p>
 
     <div class="controls">
       <div class="control-group">
         <label>1. Upload Traffic Video</label>
-        <input type="file" id="videoUpload" accept="video/*" style="width: 210px;" />
+        <input type="file" id="videoUpload" accept="video/*" style="width: 195px;" />
       </div>
       <div class="control-group">
-        <label>Distance Gate A to B (m)</label>
-        <input type="number" id="gateDistanceMeters" value="10" step="0.5" min="1" title="Real-world distance in meters between the Cyan line and Amber line" />
+        <label>Distance Gate A–B (m)</label>
+        <input type="number" id="gateDistanceMeters" value="10" step="0.5" min="1" style="width: 110px;" />
       </div>
       <div class="control-group">
-        <label>Gate Lock Cooldown (s)</label>
-        <input type="number" id="gateCooldownSec" value="0.65" step="0.05" min="0.2" max="3.0" title="Prevents split bounding boxes from double-counting at the same spot on the line" />
+        <label>2W Sensitivity</label>
+        <select id="twoWheelerSens" style="width: 135px;">
+          <option value="0.14">High (0.14 + Riders)</option>
+          <option value="0.20" selected>Balanced (0.20)</option>
+          <option value="0.30">Strict (0.30)</option>
+        </select>
       </div>
       <div class="control-group">
-        <label>Honk Sensitivity</label>
-        <input type="number" id="honkThreshold" value="2.4" step="0.1" min="1.2" max="5.0" style="width: 110px;" />
+        <label>3W / Auto Mode</label>
+        <select id="autoDetectMode" style="width: 155px;">
+          <option value="indian" selected>Indian Auto (Color+Size)</option>
+          <option value="size">Compact Size Only</option>
+          <option value="off">Off (Group with Car)</option>
+        </select>
       </div>
-      <button id="drawGatesBtn" class="secondary" disabled>Click 4 Points on Video</button>
-      <button id="startBtn" disabled>Loading AI...</button>
-      <button id="resetCountsBtn" class="danger" disabled>Reset Counts</button>
-      <span class="status-badge" id="statusText">Initializing TensorFlow.js...</span>
+      <label class="checkbox-group" title="Fuses detected helmeted riders/persons moving inside the road lane into Two-Wheelers">
+        <input type="checkbox" id="riderFusionToggle" checked />
+        Rider → 2W Fusion
+      </label>
+      <label class="checkbox-group" title="Crops a high-resolution zoomed tile around Gate A & B so small 2Ws and Autos are not crushed">
+        <input type="checkbox" id="sahiZoomToggle" checked />
+        High-Res Gate Zoom
+      </label>
+      <button id="drawGatesBtn" class="secondary" disabled>Click 4 Gate Points</button>
+      <button id="startBtn" disabled>Loading High-Res AI...</button>
+      <button id="resetCountsBtn" class="danger" disabled>Reset</button>
+      <span class="status-badge" id="statusText">Loading full MobileNetV2 model...</span>
     </div>
 
     <div class="grid">
@@ -114,11 +138,15 @@
         </div>
         <div class="hint-bar">
           <span>
-            <span class="legend-dot" style="background:#00f2fe;"></span><strong>Gate A (A1–A2):</strong> Primary Counting Tripwire
-            &nbsp;&nbsp;|&nbsp;&nbsp;
-            <span class="legend-dot" style="background:#f59e0b;"></span><strong>Gate B (B1–B2):</strong> Speed Trap Line
+            <span class="legend-dot" style="background:#00f2fe;"></span><strong>Gate A (A1–A2):</strong> Counting Line
+            &nbsp;|&nbsp;
+            <span class="legend-dot" style="background:#f59e0b;"></span><strong>Gate B (B1–B2):</strong> Speed Trap
+            &nbsp;|&nbsp;
+            <span class="legend-dot" style="background:#f472b6;"></span>2W
+            <span class="legend-dot" style="background:#facc15; margin-left:6px;"></span>3W/Auto
+            <span class="legend-dot" style="background:#38bdf8; margin-left:6px;"></span>Car
           </span>
-          <span>Tip: You can drag points <strong>A1, A2, B1, B2</strong> directly on the video at any time.</span>
+          <span>Dashed white box = High-Res Zoom ROI for small 2W/3W recovery</span>
         </div>
       </div>
 
@@ -136,16 +164,32 @@
         </div>
 
         <div class="metric-card">
-          <div class="metric-title">Gate-Verified Vehicle Counts</div>
+          <div class="metric-title">Gate-Verified Counts (Indian Mixed Fleet)</div>
           <table>
             <thead>
               <tr><th>Vehicle Class</th><th>Gate Count</th><th>Class Mean Speed</th></tr>
             </thead>
             <tbody>
-              <tr><td>Two-Wheeler (2W)</td><td id="count-2w">0</td><td id="speed-2w">--</td></tr>
-              <tr><td>Car / Jeep / Van</td><td id="count-car">0</td><td id="speed-car">--</td></tr>
-              <tr><td>Bus</td><td id="count-bus">0</td><td id="speed-bus">--</td></tr>
-              <tr><td>Truck / LCV / MAV</td><td id="count-truck">0</td><td id="speed-truck">--</td></tr>
+              <tr>
+                <td><span class="badge-class" style="background:#f472b6;"></span>Two-Wheeler (2W)</td>
+                <td id="count-2w">0</td><td id="speed-2w">--</td>
+              </tr>
+              <tr>
+                <td><span class="badge-class" style="background:#facc15;"></span>Auto / Three-Wheeler (3W)</td>
+                <td id="count-3w">0</td><td id="speed-3w">--</td>
+              </tr>
+              <tr>
+                <td><span class="badge-class" style="background:#38bdf8;"></span>Car / SUV / Van</td>
+                <td id="count-car">0</td><td id="speed-car">--</td>
+              </tr>
+              <tr>
+                <td><span class="badge-class" style="background:#a855f7;"></span>Bus</td>
+                <td id="count-bus">0</td><td id="speed-bus">--</td>
+              </tr>
+              <tr>
+                <td><span class="badge-class" style="background:#fb923c;"></span>Truck / LCV / Tempo</td>
+                <td id="count-truck">0</td><td id="speed-truck">--</td>
+              </tr>
             </tbody>
           </table>
         </div>
@@ -158,20 +202,37 @@
     let isProcessing = false;
     let nextTrackId = 1;
     let activeTracks = [];
-    let uniqueCounts = { '2w': 0, 'car': 0, 'bus': 0, 'truck': 0 };
-    let classSpeeds = { '2w': [], 'car': [], 'bus': [], 'truck': [] };
-    let recentGateCrossings = []; // Spatial-temporal lock against split-box double counts
-    let lastFrameTime = null;
+    const CLASSES = ['2w', '3w', 'car', 'bus', 'truck'];
+    const CLASS_COLORS = {
+      '2w': '#f472b6',
+      '3w': '#facc15',
+      'car': '#38bdf8',
+      'bus': '#a855f7',
+      'truck': '#fb923c'
+    };
 
-    // Interactive Gate Coordinates (Normalized 0..1 so they scale to any video resolution)
+    let uniqueCounts = { '2w': 0, '3w': 0, 'car': 0, 'bus': 0, 'truck': 0 };
+    let classSpeeds = { '2w': [], '3w': [], 'car': [], 'bus': [], 'truck': [] };
+    let recentGateCrossings = [];
+    let lastFrameTime = null;
+    let rollingCarWidths = []; // Tracks typical 4W widths to calibrate 3W/Auto size ratio
+
+    // Offscreen canvases for High-Res Gate Zone Slicing (SAHI) & Auto-Rickshaw HSV color sampling
+    const roiCanvas = document.createElement('canvas');
+    const roiCtx = roiCanvas.getContext('2d');
+    const sampleCanvas = document.createElement('canvas');
+    sampleCanvas.width = 24;
+    sampleCanvas.height = 24;
+    const sampleCtx = sampleCanvas.getContext('2d', { willReadFrequently: true });
+
     let gates = {
-      A1: { x: 0.15, y: 0.72 },
-      A2: { x: 0.85, y: 0.72 },
+      A1: { x: 0.14, y: 0.74 },
+      A2: { x: 0.86, y: 0.74 },
       B1: { x: 0.22, y: 0.48 },
       B2: { x: 0.78, y: 0.48 }
     };
     let draggingPointKey = null;
-    let clickPlacementStep = 0; // 0 = inactive, 1=A1, 2=A2, 3=B1, 4=B2
+    let clickPlacementStep = 0;
 
     const video = document.getElementById('videoElement');
     const canvas = document.getElementById('outputCanvas');
@@ -181,23 +242,29 @@
     const resetCountsBtn = document.getElementById('resetCountsBtn');
     const statusText = document.getElementById('statusText');
 
-    // 1. Load COCO-SSD model
-    cocoSsd.load({ base: 'lite_mobilenet_v2' }).then(model => {
+    // 1. Load FULL MobileNetV2 COCO-SSD (significantly better small-object recall than lite_mobilenet_v2)
+    cocoSsd.load({ base: 'mobilenet_v2' }).then(model => {
       detector = model;
-      statusText.textContent = 'Model Ready — Upload a Video';
+      statusText.textContent = 'High-Res Model Ready — Upload a Video';
       startBtn.textContent = 'Start Analysis';
       if (video.readyState >= 2) startBtn.disabled = false;
+    }).catch(() => {
+      // Fallback if CDN blocks full model
+      cocoSsd.load({ base: 'lite_mobilenet_v2' }).then(model => {
+        detector = model;
+        statusText.textContent = 'Model Ready — Upload a Video';
+        startBtn.textContent = 'Start Analysis';
+      });
     });
 
-    // 2. Load Video & Render Preview Frame Immediately for Gate Setup
+    // 2. Video Upload & First-Frame Gate Setup
     document.getElementById('videoUpload').addEventListener('change', (e) => {
       const file = e.target.files[0];
       if (!file) return;
 
       isProcessing = false;
       video.pause();
-      const url = URL.createObjectURL(file);
-      video.src = url;
+      video.src = URL.createObjectURL(file);
       video.currentTime = 0.1;
 
       video.onloadeddata = () => {
@@ -208,11 +275,23 @@
         if (detector) startBtn.disabled = false;
         resetAllMetrics();
         renderStaticPreview();
-        statusText.textContent = 'Position Gate A & Gate B on the road, then click Start';
+        statusText.textContent = 'Drag Gate A & Gate B across the road, then click Start';
       };
 
       analyzeHonksInAudio(file);
     });
+
+    function getGateZoneROI(W, H) {
+      const xs = [gates.A1.x, gates.A2.x, gates.B1.x, gates.B2.x].map(v => v * W);
+      const ys = [gates.A1.y, gates.A2.y, gates.B1.y, gates.B2.y].map(v => v * H);
+      const padX = W * 0.08;
+      const padY = H * 0.14;
+      const rx = Math.max(0, Math.min(...xs) - padX);
+      const ry = Math.max(0, Math.min(...ys) - padY);
+      const rw = Math.min(W - rx, (Math.max(...xs) + padX) - rx);
+      const rh = Math.min(H - ry, (Math.max(...ys) + padY) - ry);
+      return { rx, ry, rw, rh };
+    }
 
     function renderStaticPreview() {
       if (isProcessing) return;
@@ -220,47 +299,38 @@
       drawGatesOverlay();
     }
 
-    // 3. Mouse / Touch Interaction for Dragging or Clicking Gate Points
+    // 3. Interactive Gate Dragging & 4-Point Click Placement
     function getCanvasNormCoords(evt) {
       const rect = canvas.getBoundingClientRect();
-      const x = Math.max(0.02, Math.min(0.98, (evt.clientX - rect.left) / rect.width));
-      const y = Math.max(0.02, Math.min(0.98, (evt.clientY - rect.top) / rect.height));
-      return { x, y };
+      return {
+        x: Math.max(0.02, Math.min(0.98, (evt.clientX - rect.left) / rect.width)),
+        y: Math.max(0.02, Math.min(0.98, (evt.clientY - rect.top) / rect.height))
+      };
     }
 
     drawGatesBtn.addEventListener('click', () => {
       clickPlacementStep = 1;
-      statusText.textContent = 'Click on Video: Place Point A1 (Left edge of Counting Line)';
+      statusText.textContent = 'Click on Video: Point A1 (Left edge of Counting Line)';
     });
 
     canvas.addEventListener('mousedown', (evt) => {
       if (!canvas.width) return;
       const pos = getCanvasNormCoords(evt);
 
-      // Step-by-step 4-point click placement mode
       if (clickPlacementStep > 0) {
-        if (clickPlacementStep === 1) {
-          gates.A1 = pos;
-          clickPlacementStep = 2;
-          statusText.textContent = 'Click on Video: Place Point A2 (Right edge of Counting Line)';
-        } else if (clickPlacementStep === 2) {
-          gates.A2 = pos;
-          clickPlacementStep = 3;
-          statusText.textContent = 'Click on Video: Place Point B1 (Left edge of Speed Line)';
-        } else if (clickPlacementStep === 3) {
-          gates.B1 = pos;
-          clickPlacementStep = 4;
-          statusText.textContent = 'Click on Video: Place Point B2 (Right edge of Speed Line)';
-        } else if (clickPlacementStep === 4) {
-          gates.B2 = pos;
+        const order = ['A1', 'A2', 'B1', 'B2'];
+        gates[order[clickPlacementStep - 1]] = pos;
+        clickPlacementStep++;
+        if (clickPlacementStep > 4) {
           clickPlacementStep = 0;
           statusText.textContent = 'Gates Set! Ready to Analyze.';
+        } else {
+          statusText.textContent = `Click on Video: Place Point ${order[clickPlacementStep - 1]}`;
         }
         renderStaticPreview();
         return;
       }
 
-      // Otherwise check if user grabbed an existing circular handle
       let minDist = 0.045;
       for (const [key, pt] of Object.entries(gates)) {
         const d = Math.hypot(pos.x - pt.x, pos.y - pt.y);
@@ -277,9 +347,7 @@
       renderStaticPreview();
     });
 
-    window.addEventListener('mouseup', () => {
-      draggingPointKey = null;
-    });
+    window.addEventListener('mouseup', () => { draggingPointKey = null; });
 
     function drawGatesOverlay() {
       const W = canvas.width;
@@ -289,99 +357,293 @@
       const B1 = { x: gates.B1.x * W, y: gates.B1.y * H };
       const B2 = { x: gates.B2.x * W, y: gates.B2.y * H };
 
-      // Shaded trap zone polygon between Gate A and Gate B
       ctx.save();
+      // Draw High-Res Zoom Tile boundary if enabled
+      if (document.getElementById('sahiZoomToggle').checked) {
+        const { rx, ry, rw, rh } = getGateZoneROI(W, H);
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.35)';
+        ctx.setLineDash([6, 6]);
+        ctx.lineWidth = 1.5;
+        ctx.strokeRect(rx, ry, rw, rh);
+        ctx.setLineDash([]);
+      }
+
       ctx.fillStyle = 'rgba(56, 189, 248, 0.08)';
       ctx.beginPath();
-      ctx.moveTo(A1.x, A1.y);
-      ctx.lineTo(A2.x, A2.y);
-      ctx.lineTo(B2.x, B2.y);
-      ctx.lineTo(B1.x, B1.y);
+      ctx.moveTo(A1.x, A1.y); ctx.lineTo(A2.x, A2.y);
+      ctx.lineTo(B2.x, B2.y); ctx.lineTo(B1.x, B1.y);
       ctx.closePath();
       ctx.fill();
 
-      // Draw Gate A (Counting Line)
       drawLineWithHandles(A1, A2, '#00f2fe', 'A1', 'A2', 'GATE A (COUNT)');
-      // Draw Gate B (Speed Line)
       drawLineWithHandles(B1, B2, '#f59e0b', 'B1', 'B2', 'GATE B (SPEED)');
       ctx.restore();
     }
 
-    function drawLineWithHandles(p1, p2, color, label1, label2, centerTitle) {
+    function drawLineWithHandles(p1, p2, color, l1, l2, title) {
       ctx.strokeStyle = color;
       ctx.lineWidth = 3.5;
       ctx.beginPath();
-      ctx.moveTo(p1.x, p1.y);
-      ctx.lineTo(p2.x, p2.y);
+      ctx.moveTo(p1.x, p1.y); ctx.lineTo(p2.x, p2.y);
       ctx.stroke();
 
-      // Center tag
-      const mx = (p1.x + p2.x) / 2;
-      const my = (p1.y + p2.y) / 2;
+      const mx = (p1.x + p2.x) / 2, my = (p1.y + p2.y) / 2;
       ctx.fillStyle = 'rgba(15, 23, 42, 0.85)';
       ctx.fillRect(mx - 58, my - 12, 116, 22);
       ctx.fillStyle = color;
       ctx.font = 'bold 12px sans-serif';
-      ctx.fillText(centerTitle, mx - 48, my + 3);
+      ctx.fillText(title, mx - 48, my + 3);
 
-      // Endpoints
-      for (const [pt, lbl] of [[p1, label1], [p2, label2]]) {
+      for (const [pt, lbl] of [[p1, l1], [p2, l2]]) {
         ctx.beginPath();
-        ctx.arc(pt.x, pt.y, 9, 0, Math.PI * 2);
-        ctx.fillStyle = color;
-        ctx.fill();
-        ctx.strokeStyle = '#0f172a';
-        ctx.lineWidth = 2;
-        ctx.stroke();
-        ctx.fillStyle = '#ffffff';
-        ctx.font = 'bold 12px sans-serif';
-        ctx.fillText(lbl, pt.x + 12, pt.y + 4);
+        ctx.arc(pt.x, pt.y, 8.5, 0, Math.PI * 2);
+        ctx.fillStyle = color; ctx.fill();
+        ctx.strokeStyle = '#0f172a'; ctx.lineWidth = 2; ctx.stroke();
+        ctx.fillStyle = '#fff';
+        ctx.fillText(lbl, pt.x + 11, pt.y + 4);
       }
     }
 
-    // 4. Exact 2D Line-Segment Intersection Math
+    // 4. Geometry & Detection Fusion Helpers
     function ccw(A, B, C) {
       return (C.y - A.y) * (B.x - A.x) > (B.y - A.y) * (C.x - A.x);
     }
-
     function segmentsIntersect(P1, P2, G1, G2) {
       return (ccw(P1, G1, G2) !== ccw(P2, G1, G2)) && (ccw(P1, P2, G1) !== ccw(P1, P2, G2));
     }
 
-    // 5. Cross-Class Non-Maximum Suppression (NMS) so 1 vehicle never gets 2 boxes
     function computeIoU(a, b) {
-      const xA = Math.max(a.x, b.x);
-      const yA = Math.max(a.y, b.y);
-      const xB = Math.min(a.x + a.w, b.x + b.w);
-      const yB = Math.min(a.y + a.h, b.y + b.h);
-      const interArea = Math.max(0, xB - xA) * Math.max(0, yB - yA);
-      if (interArea <= 0) return 0;
-      const unionArea = (a.w * a.h) + (b.w * b.h) - interArea;
-      return interArea / unionArea;
+      const xA = Math.max(a.x, b.x), yA = Math.max(a.y, b.y);
+      const xB = Math.min(a.x + a.w, b.x + b.w), yB = Math.min(a.y + a.h, b.y + b.h);
+      const inter = Math.max(0, xB - xA) * Math.max(0, yB - yA);
+      if (inter <= 0) return 0;
+      return inter / ((a.w * a.h) + (b.w * b.h) - inter);
     }
 
-    function applyCrossClassNMS(detections, iouThreshold = 0.45) {
-      detections.sort((a, b) => b.score - a.score);
+    function isPointNearRoadZone(px, py, W, H) {
+      const { rx, ry, rw, rh } = getGateZoneROI(W, H);
+      return px >= rx && px <= (rx + rw) && py >= ry && py <= (ry + rh);
+    }
+
+    // 5. 3W / Auto-Rickshaw Livery & Morphology Classifier
+    function classifyThreeWheelerOrCar(det, W, H) {
+      const mode = document.getElementById('autoDetectMode').value;
+      if (mode === 'off') return det.vType;
+
+      const aspect = det.h / Math.max(1, det.w); // Autos are boxier/taller relative to width than sedans
+
+      // Sample 24x24 patch from video frame to inspect Auto-Rickshaw livery (Yellow/Green/Black canopy)
+      let yellowGreenRatio = 0;
+      let topDarkCanopy = false;
+
+      if (mode === 'indian' && det.w > 18 && det.h > 18) {
+        try {
+          sampleCtx.drawImage(video, det.x, det.y, det.w, det.h, 0, 0, 24, 24);
+          const imgData = sampleCtx.getImageData(0, 0, 24, 24).data;
+          let ygPixels = 0;
+          let topLumSum = 0, botLumSum = 0;
+          let totalSampled = 0;
+
+          for (let py = 2; py < 22; py++) {
+            for (let px = 3; px < 21; px++) {
+              const idx = (py * 24 + px) * 4;
+              const r = imgData[idx], g = imgData[idx + 1], b = imgData[idx + 2];
+              const lum = 0.299 * r + 0.587 * g + 0.114 * b;
+              if (py < 10) topLumSum += lum;
+              else botLumSum += lum;
+
+              // Detect vibrant Auto-Rickshaw Yellow (R>140, G>115, B<95) or CNG Auto Green (G>110, G > R*1.15, G > B*1.15)
+              const isAutoYellow = (r > 135 && g > 110 && b < 95 && (r + g) > b * 3.2);
+              const isAutoGreen = (g > 95 && g > r * 1.15 && g > b * 1.12 && r < 165);
+              if (isAutoYellow || isAutoGreen) ygPixels++;
+              totalSampled++;
+            }
+          }
+          yellowGreenRatio = ygPixels / Math.max(1, totalSampled);
+          const avgTopLum = topLumSum / (8 * 18);
+          const avgBotLum = botLumSum / (12 * 18);
+          // Classic black/white/grey canvas hood on top + colored body or vice versa
+          topDarkCanopy = Math.abs(avgTopLum - avgBotLum) > 26;
+        } catch (e) {}
+      }
+
+      // Normalize width by vertical perspective position (cy / H)
+      const normY = Math.max(0.25, (det.y + det.h) / H);
+      const depthNormWidth = det.w / normY;
+
+      // Median width of standard 4W cars seen so far
+      let refCarWidth = W * 0.16;
+      if (rollingCarWidths.length >= 4) {
+        const sorted = [...rollingCarWidths].sort((a, b) => a - b);
+        refCarWidth = sorted[Math.floor(sorted.length * 0.65)];
+      }
+
+      const isCompactFootprint = depthNormWidth < (refCarWidth * 0.78);
+      const isAutoShape = aspect >= 0.72 && aspect <= 1.55;
+
+      // Decision rule for 3W / Auto-Rickshaw:
+      // 1. Strong yellow/green auto livery with compact-to-medium body
+      if (mode === 'indian' && yellowGreenRatio > 0.14 && depthNormWidth < refCarWidth * 1.05 && aspect >= 0.62) {
+        return '3w';
+      }
+      // 2. Compact 3-wheeler footprint + boxy aspect ratio + canopy contrast
+      if (isCompactFootprint && isAutoShape && (mode === 'size' || topDarkCanopy || yellowGreenRatio > 0.06)) {
+        return '3w';
+      }
+
+      // Otherwise record as a standard 4W car reference width
+      if (det.vType === 'car' && aspect < 0.88 && depthNormWidth > W * 0.07) {
+        rollingCarWidths.push(depthNormWidth);
+        if (rollingCarWidths.length > 40) rollingCarWidths.shift();
+      }
+      return det.vType;
+    }
+
+    // 6. Dual-Pass Detection (Full Frame + High-Res Gate Zone Crop) & Rider-to-2W Fusion
+    async function runEnhancedDetection(W, H) {
+      const min2wScore = parseFloat(document.getElementById('twoWheelerSens').value) || 0.20;
+      const useZoom = document.getElementById('sahiZoomToggle').checked;
+      const useRiderFusion = document.getElementById('riderFusionToggle').checked;
+
+      // Pass 1: Full-frame inference with low threshold to catch faint 2Ws
+      const fullPreds = await detector.detect(video, 50, min2wScore);
+      let combinedRaw = fullPreds.map(p => ({
+        class: p.class,
+        score: p.score,
+        x: p.bbox[0], y: p.bbox[1], w: p.bbox[2], h: p.bbox[3]
+      }));
+
+      // Pass 2: High-Resolution Gate Zone Tile (SAHI-style zoom)
+      if (useZoom) {
+        const { rx, ry, rw, rh } = getGateZoneROI(W, H);
+        if (rw > 60 && rh > 60) {
+          roiCanvas.width = rw;
+          roiCanvas.height = rh;
+          roiCtx.drawImage(video, rx, ry, rw, rh, 0, 0, rw, rh);
+          const zoomPreds = await detector.detect(roiCanvas, 45, min2wScore);
+          for (const zp of zoomPreds) {
+            combinedRaw.push({
+              class: zp.class,
+              score: Math.min(0.99, zp.score * 1.08), // Slight boost for high-res tile detections
+              x: zp.bbox[0] + rx,
+              y: zp.bbox[1] + ry,
+              w: zp.bbox[2],
+              h: zp.bbox[3]
+            });
+          }
+        }
+      }
+
+      const bikes = [];
+      const persons = [];
+      const fourWheelers = [];
+
+      for (const item of combinedRaw) {
+        if (item.class === 'motorcycle' || item.class === 'bicycle') {
+          bikes.push({ ...item, vType: '2w' });
+        } else if (item.class === 'person') {
+          persons.push(item);
+        } else if (item.class === 'car' || item.class === 'bus' || item.class === 'truck') {
+          if (item.score >= 0.30) {
+            fourWheelers.push({ ...item, vType: item.class });
+          }
+        }
+      }
+
+      // Rider-to-2W Fusion: Merge persons sitting on motorcycles OR riders inside the road trap zone
+      if (useRiderFusion) {
+        for (const p of persons) {
+          // Ignore huge bounding boxes or tiny distant specs
+          if (p.h > H * 0.48 || p.h < H * 0.035) continue;
+
+          // Check if person overlaps an existing detected bike
+          let mergedWithBike = false;
+          for (const b of bikes) {
+            const horizOverlap = Math.min(p.x + p.w, b.x + b.w) - Math.max(p.x, b.x);
+            const vertDist = Math.abs((p.y + p.h) - (b.y + b.h));
+            if (horizOverlap > p.w * 0.35 && vertDist < p.h * 0.65) {
+              // Expand bike box to include rider & boost score
+              const nx = Math.min(p.x, b.x);
+              const ny = Math.min(p.y, b.y);
+              const nw = Math.max(p.x + p.w, b.x + b.w) - nx;
+              const nh = Math.max(p.y + p.h, b.y + b.h) - ny;
+              b.x = nx; b.y = ny; b.w = nw; b.h = nh;
+              b.score = Math.max(b.score, p.score);
+              mergedWithBike = true;
+              break;
+            }
+          }
+
+          // Check if person is falsely inside a car/bus window
+          let insideHeavyVehicle = false;
+          for (const fv of fourWheelers) {
+            if (computeIoU(p, fv) > 0.22) {
+              insideHeavyVehicle = true;
+              break;
+            }
+          }
+
+          // If an isolated rider-proportioned box is moving inside the active road gate zone, recover as 2W
+          const aspect = p.h / Math.max(1, p.w);
+          const anchorX = p.x + p.w / 2;
+          const anchorY = p.y + p.h * 0.92;
+          if (!mergedWithBike && !insideHeavyVehicle && aspect >= 1.1 && aspect <= 2.65 && isPointNearRoadZone(anchorX, anchorY, W, H)) {
+            bikes.push({
+              x: p.x - p.w * 0.1,
+              y: p.y,
+              w: p.w * 1.2,
+              h: p.h * 1.08,
+              score: p.score * 0.9,
+              vType: '2w'
+            });
+          }
+        }
+      }
+
+      // Run NMS separately on 2Ws (so dense motorcycle swarms aren't suppressed by adjacent cars)
+      const nmsBikes = applyNMS(bikes, 0.42);
+      const nmsHeavy = applyNMS(fourWheelers, 0.45);
+
+      // Classify 3W / Auto-Rickshaws among compact car/truck boxes
+      for (const hv of nmsHeavy) {
+        if (hv.vType === 'car' || hv.vType === 'truck') {
+          hv.vType = classifyThreeWheelerOrCar(hv, W, H);
+        }
+      }
+
+      const finalDetections = [...nmsBikes, ...nmsHeavy].map(d => ({
+        ...d,
+        ax: d.x + d.w / 2,
+        ay: d.y + d.h * 0.90,
+        matched: false
+      }));
+
+      return finalDetections;
+    }
+
+    function applyNMS(boxes, iouThreshold) {
+      boxes.sort((a, b) => b.score - a.score);
       const kept = [];
-      for (const det of detections) {
-        let overlap = false;
+      for (const b of boxes) {
+        let keep = true;
         for (const k of kept) {
-          if (computeIoU(det, k) > iouThreshold) {
-            overlap = true;
+          if (computeIoU(b, k) > iouThreshold) {
+            keep = false;
             break;
           }
         }
-        if (!overlap) kept.push(det);
+        if (keep) kept.push(b);
       }
       return kept;
     }
 
-    // 6. Start / Pause / Reset Controls
+    // 7. Reset & Playback Controls
     function resetAllMetrics() {
       activeTracks = [];
-      uniqueCounts = { '2w': 0, 'car': 0, 'bus': 0, 'truck': 0 };
-      classSpeeds = { '2w': [], 'car': [], 'bus': [], 'truck': [] };
+      uniqueCounts = { '2w': 0, '3w': 0, 'car': 0, 'bus': 0, 'truck': 0 };
+      classSpeeds = { '2w': [], '3w': [], 'car': [], 'bus': [], 'truck': [] };
       recentGateCrossings = [];
+      rollingCarWidths = [];
       lastFrameTime = null;
       updateDashboardUI();
     }
@@ -397,7 +659,7 @@
         video.pause();
         isProcessing = false;
         startBtn.textContent = 'Resume Analysis';
-        statusText.textContent = 'Paused — You can adjust Gate points';
+        statusText.textContent = 'Paused — Gates can be adjusted';
         return;
       }
       if (video.ended) {
@@ -406,20 +668,12 @@
       }
       isProcessing = true;
       startBtn.textContent = 'Pause Analysis';
-      statusText.textContent = 'Tracking & Monitoring Gates...';
+      statusText.textContent = 'Scanning Full Frame + High-Res Gate Tile...';
       video.play();
       requestAnimationFrame(processFrame);
     });
 
-    function mapClass(cocoClass) {
-      if (cocoClass === 'motorcycle' || cocoClass === 'bicycle') return '2w';
-      if (cocoClass === 'car') return 'car';
-      if (cocoClass === 'bus') return 'bus';
-      if (cocoClass === 'truck') return 'truck';
-      return null;
-    }
-
-    // 7. Main Frame Processing Loop
+    // 8. Main Frame Loop
     async function processFrame() {
       if (!isProcessing || video.paused || video.ended) {
         if (video.ended) {
@@ -434,8 +688,7 @@
       const dt = lastFrameTime !== null ? (currentTime - lastFrameTime) : 0;
       lastFrameTime = currentTime;
 
-      const W = canvas.width;
-      const H = canvas.height;
+      const W = canvas.width, H = canvas.height;
       ctx.drawImage(video, 0, 0, W, H);
 
       const A1 = { x: gates.A1.x * W, y: gates.A1.y * H };
@@ -443,37 +696,16 @@
       const B1 = { x: gates.B1.x * W, y: gates.B1.y * H };
       const B2 = { x: gates.B2.x * W, y: gates.B2.y * H };
 
-      // Calibrated pixel-to-meter scale from the distance between Gate A midpoint and Gate B midpoint
       const gateDistMeters = parseFloat(document.getElementById('gateDistanceMeters').value) || 10;
-      const gateCooldownSec = parseFloat(document.getElementById('gateCooldownSec').value) || 0.65;
       const midA = { x: (A1.x + A2.x) / 2, y: (A1.y + A2.y) / 2 };
       const midB = { x: (B1.x + B2.x) / 2, y: (B1.y + B2.y) / 2 };
       const trapPixelSpan = Math.max(25, Math.hypot(midB.x - midA.x, midB.y - midA.y));
       const metersPerPixelInZone = gateDistMeters / trapPixelSpan;
 
       if (dt > 0 && dt < 1.0) {
-        const rawPreds = await detector.detect(video, 40, 0.35);
-        let detections = [];
+        const detections = await runEnhancedDetection(W, H);
+        const maxMatchDist = Math.max(W, H) * 0.095;
 
-        for (const p of rawPreds) {
-          const vType = mapClass(p.class);
-          if (!vType) continue;
-          const [x, y, w, h] = p.bbox;
-          // Use bottom-center (road tire contact point) for accurate gate line crossing
-          detections.push({
-            vType, x, y, w, h,
-            score: p.score,
-            ax: x + w / 2,
-            ay: y + h * 0.92,
-            matched: false
-          });
-        }
-
-        // Remove duplicate overlapping boxes on the same vehicle
-        detections = applyCrossClassNMS(detections, 0.45);
-
-        // Match existing tracks using velocity-predicted anchor distance + IoU
-        const maxMatchDist = Math.max(W, H) * 0.09;
         for (const track of activeTracks) {
           track.framesSinceSeen++;
           const predX = track.ax + track.vx;
@@ -486,8 +718,10 @@
             if (det.matched) continue;
             const dist = Math.hypot(det.ax - predX, det.ay - predY);
             const iou = computeIoU(track, det);
-            const cost = dist - (iou * 60);
-            if ( (dist < maxMatchDist || iou > 0.25) && cost < bestScore ) {
+            // Bonus affinity if same vehicle category
+            const classBonus = (det.vType === track.vType) ? 18 : 0;
+            const cost = dist - (iou * 55) - classBonus;
+            if ((dist < maxMatchDist || iou > 0.20) && cost < bestScore) {
               bestScore = cost;
               bestDet = det;
             }
@@ -498,71 +732,84 @@
             const prevAnchor = { x: track.ax, y: track.ay };
             const currAnchor = { x: bestDet.ax, y: bestDet.ay };
 
-            // Smooth velocity vector
-            track.vx = 0.6 * track.vx + 0.4 * (currAnchor.x - prevAnchor.x);
-            track.vy = 0.6 * track.vy + 0.4 * (currAnchor.y - prevAnchor.y);
+            // Majority class voting across track lifetime so a single-frame flicker doesn't flip 3W to Car
+            track.classVotes[bestDet.vType] = (track.classVotes[bestDet.vType] || 0) + 1;
+            let topClass = track.vType;
+            let maxVotes = 0;
+            for (const [cls, count] of Object.entries(track.classVotes)) {
+              if (count > maxVotes) { maxVotes = count; topClass = cls; }
+            }
+            // If already counted at Gate A and class refines (e.g. car -> 3w), update the tally smoothly
+            if (track.counted && topClass !== track.lockedClass) {
+              uniqueCounts[track.lockedClass] = Math.max(0, uniqueCounts[track.lockedClass] - 1);
+              uniqueCounts[topClass]++;
+              track.lockedClass = topClass;
+            }
+            track.vType = topClass;
 
-            // Fallback local speed inside trap zone
+            track.vx = 0.55 * track.vx + 0.45 * (currAnchor.x - prevAnchor.x);
+            track.vy = 0.55 * track.vy + 0.45 * (currAnchor.y - prevAnchor.y);
+
             const stepMeters = Math.hypot(currAnchor.x - prevAnchor.x, currAnchor.y - prevAnchor.y) * metersPerPixelInZone;
             const instKmh = (stepMeters / dt) * 3.6;
-            if (instKmh > 2 && instKmh < 150) {
+            if (instKmh > 3 && instKmh < 140) {
               track.instSpeeds.push(instKmh);
               if (track.instSpeeds.length > 8) track.instSpeeds.shift();
             }
 
-            // CHECK GATE A CROSSING (Primary Vehicle Counter)
+            // Gate A Intersection Check
             if (!track.crossedGateA && segmentsIntersect(prevAnchor, currAnchor, A1, A2)) {
               track.crossedGateA = true;
               track.timeGateA = currentTime;
 
-              // Spatial-temporal debounce check to prevent split-track double counting
-              const minSpatialLockPx = Math.hypot(A2.x - A1.x, A2.y - A1.y) * 0.12;
+              // Narrower spatial lock for 2Ws so side-by-side motorcycles are both counted!
+              const lockRatio = (track.vType === '2w') ? 0.045 : 0.10;
+              const minSpatialLockPx = Math.hypot(A2.x - A1.x, A2.y - A1.y) * lockRatio;
               const isDuplicate = recentGateCrossings.some(c =>
-                (currentTime - c.time) < gateCooldownSec &&
+                c.vType === track.vType &&
+                (currentTime - c.time) < 0.45 &&
                 Math.hypot(currAnchor.x - c.x, currAnchor.y - c.y) < minSpatialLockPx
               );
 
               if (!isDuplicate) {
                 track.counted = true;
+                track.lockedClass = track.vType;
                 uniqueCounts[track.vType]++;
-                recentGateCrossings.push({ x: currAnchor.x, y: currAnchor.y, time: currentTime });
+                recentGateCrossings.push({ x: currAnchor.x, y: currAnchor.y, time: currentTime, vType: track.vType });
 
-                // If it already crossed Gate B earlier (reverse direction traffic), compute exact 2-gate speed
                 if (track.timeGateB !== null) {
                   recordVerifiedTrapSpeed(track, Math.abs(track.timeGateA - track.timeGateB), gateDistMeters);
                 }
               }
             }
 
-            // CHECK GATE B CROSSING (Speed Trap Confirmation)
+            // Gate B Intersection Check
             if (!track.crossedGateB && segmentsIntersect(prevAnchor, currAnchor, B1, B2)) {
               track.crossedGateB = true;
               track.timeGateB = currentTime;
 
-              // If it already crossed Gate A earlier, compute exact 2-gate speed
               if (track.timeGateA !== null && track.counted) {
                 recordVerifiedTrapSpeed(track, Math.abs(track.timeGateB - track.timeGateA), gateDistMeters);
               }
             }
 
-            track.ax = currAnchor.x;
-            track.ay = currAnchor.y;
-            track.x = bestDet.x;
-            track.y = bestDet.y;
-            track.w = bestDet.w;
-            track.h = bestDet.h;
+            track.ax = currAnchor.x; track.ay = currAnchor.y;
+            track.x = bestDet.x; track.y = bestDet.y;
+            track.w = bestDet.w; track.h = bestDet.h;
             track.framesSinceSeen = 0;
             track.trail.push({ x: currAnchor.x, y: currAnchor.y });
-            if (track.trail.length > 18) track.trail.shift();
+            if (track.trail.length > 16) track.trail.shift();
           }
         }
 
-        // Create new tracks for unmatched detections
+        // Register unmatched detections
         for (const det of detections) {
           if (!det.matched) {
             activeTracks.push({
               id: nextTrackId++,
               vType: det.vType,
+              lockedClass: det.vType,
+              classVotes: { [det.vType]: 1 },
               x: det.x, y: det.y, w: det.w, h: det.h,
               ax: det.ax, ay: det.ay,
               vx: 0, vy: 0,
@@ -580,9 +827,9 @@
           }
         }
 
-        // If a counted vehicle leaves the frame without hitting Gate B, use its calibrated zone speed
+        // Fallback speed if counted vehicle exits before Gate B
         for (const t of activeTracks) {
-          if (t.framesSinceSeen > 15 && t.counted && !t.speedRecorded && t.instSpeeds.length >= 3) {
+          if (t.framesSinceSeen > 12 && t.counted && !t.speedRecorded && t.instSpeeds.length >= 2) {
             const meanInst = t.instSpeeds.reduce((a, b) => a + b, 0) / t.instSpeeds.length;
             t.trapSpeedKmh = meanInst;
             t.speedRecorded = true;
@@ -590,25 +837,23 @@
           }
         }
 
-        // Prune expired tracks and old gate locks
-        activeTracks = activeTracks.filter(t => t.framesSinceSeen <= 18);
-        recentGateCrossings = recentGateCrossings.filter(c => (currentTime - c.time) < 4.0);
-
+        activeTracks = activeTracks.filter(t => t.framesSinceSeen <= 15);
+        recentGateCrossings = recentGateCrossings.filter(c => (currentTime - c.time) < 3.0);
         updateDashboardUI();
       }
 
-      // Draw gates and tracked vehicles
+      // Render visual overlay
       drawGatesOverlay();
       for (const t of activeTracks) {
         if (t.framesSinceSeen > 2) continue;
 
-        // Color changes from Blue (uncounted) to Green once counted at Gate A
-        const boxColor = t.counted ? '#22c55e' : '#38bdf8';
+        const baseColor = CLASS_COLORS[t.vType] || '#38bdf8';
+        const boxColor = t.counted ? '#22c55e' : baseColor;
+
         ctx.strokeStyle = boxColor;
         ctx.lineWidth = 2.5;
         ctx.strokeRect(t.x, t.y, t.w, t.h);
 
-        // Draw trajectory trail and bottom-center anchor point
         if (t.trail.length > 1) {
           ctx.strokeStyle = boxColor;
           ctx.lineWidth = 2;
@@ -617,17 +862,13 @@
           for (let i = 1; i < t.trail.length; i++) ctx.lineTo(t.trail[i].x, t.trail[i].y);
           ctx.stroke();
         }
-        ctx.fillStyle = boxColor;
-        ctx.beginPath();
-        ctx.arc(t.ax, t.ay, 4.5, 0, Math.PI * 2);
-        ctx.fill();
 
         const displaySpeed = t.trapSpeedKmh > 0
           ? `${t.trapSpeedKmh.toFixed(1)} km/h`
           : (t.instSpeeds.length > 0 ? `${(t.instSpeeds.reduce((a,b)=>a+b,0)/t.instSpeeds.length).toFixed(0)} km/h` : '');
 
-        const statusTag = t.counted ? '✓ ' : '';
-        const label = `${statusTag}#${t.id} ${t.vType.toUpperCase()} ${displaySpeed}`;
+        const tag = t.vType === '3w' ? '3W-AUTO' : t.vType.toUpperCase();
+        const label = `${t.counted ? '✓ ' : ''}#${t.id} ${tag} ${displaySpeed}`;
         ctx.font = 'bold 12px sans-serif';
         const tw = ctx.measureText(label).width;
         ctx.fillStyle = 'rgba(15, 23, 42, 0.88)';
@@ -642,7 +883,7 @@
     function recordVerifiedTrapSpeed(track, deltaSec, distMeters) {
       if (deltaSec <= 0.08 || track.speedRecorded) return;
       const kmh = (distMeters / deltaSec) * 3.6;
-      if (kmh >= 2 && kmh <= 150) {
+      if (kmh >= 3 && kmh <= 145) {
         track.trapSpeedKmh = kmh;
         track.speedRecorded = true;
         classSpeeds[track.vType].push(kmh);
@@ -651,7 +892,7 @@
 
     function updateDashboardUI() {
       let allSpeeds = [];
-      for (const key of ['2w', 'car', 'bus', 'truck']) {
+      for (const key of CLASSES) {
         document.getElementById(`count-${key}`).textContent = uniqueCounts[key];
         const arr = classSpeeds[key];
         if (arr.length > 0) {
@@ -672,7 +913,7 @@
       }
     }
 
-    // 8. Acoustic Honk Detector (1.8 kHz - 3.5 kHz Horn Band)
+    // 9. Acoustic Honk Detector (1.8 kHz - 3.5 kHz Horn Band)
     async function analyzeHonksInAudio(file) {
       const honkCountEl = document.getElementById('honkCountVal');
       const honkSubEl = document.getElementById('honkRateSub');
@@ -711,8 +952,7 @@
 
         const sorted = [...energies].sort((a, b) => a - b);
         const medianNoise = sorted[Math.floor(sorted.length * 0.5)] || 0.0001;
-        const sensitivity = parseFloat(document.getElementById('honkThreshold').value) || 2.4;
-        const threshold = medianNoise * sensitivity;
+        const threshold = medianNoise * 2.3;
 
         let honkCount = 0;
         let inHonk = false;
